@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,12 +6,14 @@ import { useDefenseProgram } from '../../src/context/DefenseProgramContext';
 import { MonsterAnimation } from '../../src/components/MonsterAnimation';
 import { DefiAnimation } from '../../src/components/DefiAnimation';
 import { Card } from '../../src/components/Card';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { getCurrentProgramDay } from '../../src/utils/programDay';
 
 export default function TodayScreen() {
   const {
     currentDayPlan,
     currentDayIndex,
+    startISO,
     defenseScore,
     monsterState,
     defiMood,
@@ -25,7 +27,19 @@ export default function TodayScreen() {
     completedSupplements
   } = useDefenseProgram();
 
+  // Calculate current program day using the utility function
+  const currentDay = getCurrentProgramDay(startISO);
+
   const router = useRouter();
+  const { focus } = useLocalSearchParams();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [mealsYPosition, setMealsYPosition] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (focus === 'meals' && mealsYPosition !== null && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: mealsYPosition, animated: true });
+    }
+  }, [focus, mealsYPosition]);
 
   if (!currentDayPlan) {
     return (
@@ -52,13 +66,39 @@ export default function TodayScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView 
+        ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Defi Daily Message Card */}
+        <View style={styles.defiCard}>
+          <View style={styles.defiRow}>
+            <View style={styles.defiAvatar}>
+              <DefiAnimation mood="happy" size={72} />
+            </View>
+
+            <View style={styles.defiTextContainer}>
+              <Text style={styles.defiTitle}>Defi'nin Bugünkü Mesajı</Text>
+              <Text style={styles.defiMessage}>
+                "Bugün metabolizmanı desteklemek için düzenli beslen ve her öğünden sonra kısa yürüyüşlerle kan şekerini dengele."
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Today's Meal Plan Card */}
+        <TouchableOpacity 
+          style={styles.mealPlanCard}
+          onPress={() => router.push('/menus')}
+        >
+          <Text style={styles.mealPlanTitle}>Bugünün Yemek Planı</Text>
+          <Text style={styles.mealPlanSubtitle}>Günün öğünlerini görmek için tıkla</Text>
+        </TouchableOpacity>
+
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.dayLabel}>Gün {currentDayIndex}</Text>
+          <Text style={styles.dayLabel}>Gün {currentDay}</Text>
           <Text style={styles.dayTitle}>{currentDayPlan.label}</Text>
         </View>
 
@@ -92,7 +132,7 @@ export default function TodayScreen() {
           <View style={styles.defiSection}>
             <DefiAnimation mood={defiMood} size={120} />
             <View style={styles.speechBubble}>
-              <Text style={styles.defiMessage}>{defiMessage}</Text>
+              <Text style={styles.defiSpeechMessage}>{defiMessage}</Text>
             </View>
           </View>
         </Card>
@@ -104,6 +144,10 @@ export default function TodayScreen() {
         <TouchableOpacity 
           style={styles.taskCard}
           onPress={() => router.push('/menus')}
+          onLayout={(event) => {
+            const { y } = event.nativeEvent.layout;
+            setMealsYPosition(y);
+          }}
         >
           <View style={styles.taskIcon}>
             <Ionicons name="restaurant" size={28} color="#10B981" />
@@ -280,7 +324,15 @@ const styles = StyleSheet.create({
     borderRadius: 6
   },
   defiCard: {
-    backgroundColor: '#FEF3C7'
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2
   },
   defiSection: {
     alignItems: 'center'
@@ -293,6 +345,11 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   defiMessage: {
+    fontSize: 14,
+    color: '#4B5563',
+    lineHeight: 20
+  },
+  defiSpeechMessage: {
     fontSize: 16,
     color: '#1F2937',
     lineHeight: 24,
@@ -384,5 +441,42 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600'
+  },
+  mealPlanCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2
+  },
+  mealPlanTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4
+  },
+  mealPlanSubtitle: {
+    fontSize: 14,
+    color: '#6B7280'
+  },
+  defiRow: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  defiAvatar: {
+    marginRight: 12
+  },
+  defiTextContainer: {
+    flex: 1
+  },
+  defiTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4
   }
 });

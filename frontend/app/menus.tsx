@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useDefenseProgram } from '../src/context/DefenseProgramContext';
 import { Card } from '../src/components/Card';
-import { MealSlot } from '../src/types';
+import { MealSlot, DayPlan } from '../src/types';
+import { getCurrentProgramDay } from '../src/utils/programDay';
 
 const MEAL_ICONS: Record<MealSlot, string> = {
   breakfast: 'sunny',
@@ -24,13 +25,15 @@ const MEAL_NAMES: Record<MealSlot, string> = {
 export default function MenusScreen() {
   const router = useRouter();
   const { 
+    program,
     currentDayPlan, 
-    currentDayIndex, 
+    currentDayIndex,
+    startISO,
     completedMeals, 
     markMealCompleted 
   } = useDefenseProgram();
 
-  if (!currentDayPlan) {
+  if (!currentDayPlan || !program || program.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
@@ -40,12 +43,66 @@ export default function MenusScreen() {
     );
   }
 
-  const todayMeals = completedMeals[currentDayIndex] || [];
+  // Calculate current program day using the utility function
+  const currentDay = getCurrentProgramDay(startISO);
+  
+  // Get today's program day plan (find by dayIndex matching currentDay)
+  const todayDayPlan = program.find(day => day.dayIndex === currentDay) || currentDayPlan;
+  const todayDayIndex = currentDay;
+  
+  // Split program into today's day and other days
+  const otherDays = program.filter(day => day.dayIndex !== currentDay);
 
-  const handleToggleMeal = (slot: MealSlot) => {
-    if (!todayMeals.includes(slot)) {
-      markMealCompleted(currentDayIndex, slot);
+  const handleToggleMeal = (dayIndex: number, slot: MealSlot) => {
+    const dayMeals = completedMeals[dayIndex] || [];
+    if (!dayMeals.includes(slot)) {
+      markMealCompleted(dayIndex, slot);
     }
+  };
+
+  // Reusable function to render meals for a given day
+  const renderMealsForDay = (dayPlan: DayPlan, dayIndex: number, showCheckbox: boolean = false) => {
+    const dayMeals = completedMeals[dayIndex] || [];
+    
+    return dayPlan.meals.map((meal, index) => {
+      const isCompleted = dayMeals.includes(meal.slot);
+      
+      return (
+        <Card key={`${dayIndex}-${index}`}>
+          <View style={styles.mealCard}>
+            <View style={styles.mealHeader}>
+              <View style={styles.mealTitleContainer}>
+                <View style={[styles.mealIcon, isCompleted && styles.mealIconCompleted]}>
+                  <Ionicons 
+                    name={MEAL_ICONS[meal.slot] as any} 
+                    size={24} 
+                    color={isCompleted ? '#10B981' : '#6B7280'} 
+                  />
+                </View>
+                <View>
+                  <Text style={styles.mealSlotName}>{MEAL_NAMES[meal.slot]}</Text>
+                  <Text style={styles.mealTitle}>{meal.title}</Text>
+                </View>
+              </View>
+              {showCheckbox && (
+                <TouchableOpacity
+                  style={[styles.checkbox, isCompleted && styles.checkboxCompleted]}
+                  onPress={() => handleToggleMeal(dayIndex, meal.slot)}
+                >
+                  {isCompleted && (
+                    <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {meal.description && (
+              <Text style={styles.mealDescription}>{meal.description}</Text>
+            )}
+          </View>
+        </Card>
+      );
+    });
   };
 
   return (
@@ -60,7 +117,7 @@ export default function MenusScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Menüler</Text>
-          <Text style={styles.headerSubtitle}>Gün {currentDayIndex}</Text>
+          <Text style={styles.headerSubtitle}>Gün {currentDay}</Text>
         </View>
       </View>
 
@@ -69,43 +126,22 @@ export default function MenusScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {currentDayPlan.meals.map((meal, index) => {
-          const isCompleted = todayMeals.includes(meal.slot);
-          
-          return (
-            <Card key={index}>
-              <View style={styles.mealCard}>
-                <View style={styles.mealHeader}>
-                  <View style={styles.mealTitleContainer}>
-                    <View style={[styles.mealIcon, isCompleted && styles.mealIconCompleted]}>
-                      <Ionicons 
-                        name={MEAL_ICONS[meal.slot] as any} 
-                        size={24} 
-                        color={isCompleted ? '#10B981' : '#6B7280'} 
-                      />
-                    </View>
-                    <View>
-                      <Text style={styles.mealSlotName}>{MEAL_NAMES[meal.slot]}</Text>
-                      <Text style={styles.mealTitle}>{meal.title}</Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.checkbox, isCompleted && styles.checkboxCompleted]}
-                    onPress={() => handleToggleMeal(meal.slot)}
-                  >
-                    {isCompleted && (
-                      <Ionicons name="checkmark" size={20} color="#FFFFFF" />
-                    )}
-                  </TouchableOpacity>
-                </View>
-                
-                {meal.description && (
-                  <Text style={styles.mealDescription}>{meal.description}</Text>
-                )}
+        {/* Bugünün Menüsü - Today's Meal Plan */}
+        <Text style={styles.sectionTitle}>Bugünün Menüsü</Text>
+        {renderMealsForDay(todayDayPlan, todayDayIndex, true)}
+
+        {/* Diğer Günler - Other Days */}
+        {otherDays.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, styles.otherDaysTitle]}>Diğer Günler</Text>
+            {otherDays.map((dayPlan) => (
+              <View key={dayPlan.dayIndex} style={styles.daySection}>
+                <Text style={styles.dayLabel}>{dayPlan.label}</Text>
+                {renderMealsForDay(dayPlan, dayPlan.dayIndex, false)}
               </View>
-            </Card>
-          );
-        })}
+            ))}
+          </>
+        )}
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -151,6 +187,27 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginTop: 8,
+    marginBottom: 16
+  },
+  otherDaysTitle: {
+    marginTop: 32
+  },
+  daySection: {
+    marginBottom: 24
+  },
+  dayLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
   },
   mealCard: {
     width: '100%'
