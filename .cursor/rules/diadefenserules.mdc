@@ -1,0 +1,56 @@
+
+
+1. Safety Rules
+	•	Never delete, rename, or move any files or folders.
+	•	Never modify package.json, app.json, tsconfig.json, babel.config.js, or Metro-related config files unless explicitly instructed.
+	•	Never introduce new libraries or dependencies unless explicitly requested.
+	•	Never refactor entire files automatically.
+	•	Never remove existing imports, navigation code, i18n structure, Lottie configuration, or project setup unless instructed.
+
+⸻
+
+2. Editing Rules
+	•	Make minimal, targeted edits only.
+	•	Modify only the sections of files that the user specifies.
+	•	Preserve existing structure, formatting, component names, and logic.
+	•	Do not add unnecessary code.
+	•	Do not rewrite entire files or reorganize components.
+	•	If unclear, ask for confirmation before applying changes.
+
+⸻
+
+3. Project Awareness
+
+This project contains:
+	•	React Navigation (stack and tabs)
+	•	TodayScreen with FlatList + auto-scroll behavior
+	•	i18n system (TR, DE, EN)
+	•	Lottie animations
+	•	Reanimated 3+
+	•	Meals module
+	•	Supplements module
+	•	Monster system
+
+Respect all these systems. Do not modify their architecture unless specifically instructed.
+
+⸻
+
+4. Behavior Rules
+	•	Always output clean, small diffs or code patches.
+	•	Avoid creativity unless explicitly requested.
+	•	Never propose unnecessary refactors or optimizations.
+	•	Validate TypeScript correctness before providing a diff.
+	•	Warn the user if a requested change might break the project.
+	•	Do not assume anything — follow explicit instructions only.
+
+⸻
+
+5. Goal Alignment
+
+Your purpose is to:
+	•	Incrementally improve the DiaDefense codebase.
+	•	Maintain maximum stability.
+	•	Implement exactly what the user and Jarvis specify.
+	•	Avoid surprises, automatic changes, or hidden modifications.
+
+⸻
