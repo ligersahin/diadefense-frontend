@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Image, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useDefenseProgram } from '../../src/context/DefenseProgramContext';
-import { MonsterAnimation } from '../../src/components/MonsterAnimation';
-import { DefiAnimation } from '../../src/components/DefiAnimation';
+import { moodFromDefenseScore, MonsterMood } from '../../src/components/MonsterAvatar';
 import { Card } from '../../src/components/Card';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { getCurrentProgramDay } from '../../src/utils/programDay';
+import DefiAvatar from "../../src/components/DefiAvatar";
 
 export default function TodayScreen() {
   const {
@@ -24,16 +23,40 @@ export default function TodayScreen() {
     activityRatio,
     sleepRatio,
     completedMeals,
-    completedSupplements
+    completedSupplements,
+    waterIntakeByDay,
+    activityMinutesByDay,
+    sleepHoursByDay,
+    addWaterByDay,
+    resetWaterByDay,
+    addActivityByDay,
+    resetActivityByDay,
+    setSleepByDay,
+    addSleepByDay,
+    resetSleepByDay
   } = useDefenseProgram();
-
-  // Calculate current program day using the utility function
-  const currentDay = getCurrentProgramDay(startISO);
 
   const router = useRouter();
   const { focus } = useLocalSearchParams();
   const scrollViewRef = useRef<ScrollView>(null);
   const [mealsYPosition, setMealsYPosition] = useState<number | null>(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [waterModalOpen, setWaterModalOpen] = useState(false);
+  const [activityModalOpen, setActivityModalOpen] = useState(false);
+  const [sleepModalOpen, setSleepModalOpen] = useState(false);
+
+  const getMonsterImage = (mood: MonsterMood) => {
+    switch (mood) {
+      case 'weak':
+        return require('../../assets/monsters/monster-weak.png');
+      case 'neutral':
+        return require('../../assets/monsters/monster-neutral.png');
+      case 'strong':
+        return require('../../assets/monsters/monster-strong.png');
+      case 'angry':
+        return require('../../assets/monsters/monster-angry.png');
+    }
+  };
 
   useEffect(() => {
     if (focus === 'meals' && mealsYPosition !== null && scrollViewRef.current) {
@@ -58,84 +81,124 @@ export default function TodayScreen() {
     );
   }
 
-  const todayMeals = completedMeals[currentDayIndex] || [];
+  const dayMeals = completedMeals[currentDayIndex] || [];
   const todaySupps = completedSupplements[currentDayIndex] || [];
-  const totalMeals = currentDayPlan.meals.length;
+  // Filter out any potential snack entries and deduplicate
+  const safeMeals = (currentDayPlan?.meals ?? []).filter(
+    (m: any) => m?.type !== "snack" && m?.slot !== "snack" && m?.label !== "Ara Öğün"
+  );
+  const safeMealSlots = new Set(safeMeals.map(m => m.slot));
+  // Filter and deduplicate completed meals to only include safe meal slots
+  const todayMeals = Array.from(new Set(dayMeals.filter(slot => safeMealSlots.has(slot))));
+  const totalMeals = safeMeals.length;
   const totalSupps = currentDayPlan.supplements.length;
+
+  const defiOpacity = scrollY.interpolate({
+    inputRange: [0, 120],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const defiScale = scrollY.interpolate({
+    inputRange: [0, 120],
+    outputRange: [1, 0.92],
+    extrapolate: 'clamp',
+  });
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView 
+      <Animated.ScrollView 
         ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
       >
+        <Animated.View
+          style={{
+            alignItems: "center",
+            paddingTop: 8,
+            paddingBottom: 0,
+            marginBottom: -6,
+            opacity: defiOpacity,
+            transform: [{ scale: defiScale }],
+          }}
+        >
+          <DefiAvatar size={165} />
+        </Animated.View>
         {/* Defi Daily Message Card */}
         <View style={styles.defiCard}>
-          <View style={styles.defiRow}>
-            <View style={styles.defiAvatar}>
-              <DefiAnimation mood="happy" size={72} />
-            </View>
-
-            <View style={styles.defiTextContainer}>
-              <Text style={styles.defiTitle}>Defi'nin Bugünkü Mesajı</Text>
-              <Text style={styles.defiMessage}>
-                "Bugün metabolizmanı desteklemek için düzenli beslen ve her öğünden sonra kısa yürüyüşlerle kan şekerini dengele."
-              </Text>
-            </View>
+          <View style={styles.defiTextContainer}>
+            <Text style={styles.defiTitle}>Defi'nin Bugünkü Mesajı</Text>
+            <Text style={styles.defiMessage}>
+              "Bugün metabolizmanı desteklemek için düzenli beslen ve her öğünden sonra kısa yürüyüşlerle kan şekerini dengele."
+            </Text>
           </View>
         </View>
 
         {/* Today's Meal Plan Card */}
         <TouchableOpacity 
-          style={styles.mealPlanCard}
+          style={styles.mealCtaCard}
           onPress={() => router.push('/menus')}
+          activeOpacity={0.85}
         >
-          <Text style={styles.mealPlanTitle}>Bugünün Yemek Planı</Text>
-          <Text style={styles.mealPlanSubtitle}>Günün öğünlerini görmek için tıkla</Text>
+          <View style={styles.mealCtaLeft}>
+            <View style={styles.mealCtaIcon}>
+              <Ionicons name="restaurant" size={20} color="#10B981" />
+            </View>
+            <View style={styles.mealCtaText}>
+              <Text style={styles.mealCtaTitle}>Bugünün Yemek Planı</Text>
+              <Text style={styles.mealCtaSubtitle}>
+                {todayMeals.length}/{totalMeals} öğün • {todaySupps.length}/{totalSupps} supp
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
         </TouchableOpacity>
 
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.dayLabel}>Gün {currentDay}</Text>
-          <Text style={styles.dayTitle}>{currentDayPlan.label}</Text>
-        </View>
-
         {/* Canavar ve Savunma Skoru */}
-        <Card>
-          <View style={styles.monsterSection}>
-            <MonsterAnimation state={monsterState} size={180} />
-            <View style={styles.scoreContainer}>
-              <Text style={styles.scoreLabel}>Savunma Gücü</Text>
-              <Text style={[
-                styles.scoreValue,
-                { color: defenseScore >= 70 ? '#10B981' : defenseScore >= 40 ? '#F59E0B' : '#EF4444' }
-              ]}>
-                {Math.round(defenseScore)}
-              </Text>
-              <View style={styles.scoreBar}>
-                <View style={[
-                  styles.scoreBarFill,
-                  { 
-                    width: `${defenseScore}%`,
-                    backgroundColor: defenseScore >= 70 ? '#10B981' : defenseScore >= 40 ? '#F59E0B' : '#EF4444'
-                  }
-                ]} />
-              </View>
+        <TouchableOpacity
+          style={styles.monsterMiniCard}
+          onPress={() => router.push('/(tabs)/defense')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.monsterMiniLeft}>
+            <View style={styles.monsterMiniIcon}>
+              <Image
+                source={getMonsterImage(moodFromDefenseScore(defenseScore))}
+                style={{ width: 70, height: 70 }}
+                resizeMode="contain"
+              />
             </View>
-          </View>
-        </Card>
 
-        {/* Defi Mesajı */}
-        <Card style={styles.defiCard}>
-          <View style={styles.defiSection}>
-            <DefiAnimation mood={defiMood} size={120} />
-            <View style={styles.speechBubble}>
-              <Text style={styles.defiSpeechMessage}>{defiMessage}</Text>
+            <View style={styles.monsterMiniText}>
+              <Text style={styles.monsterMiniTitle}>Diyabet Canavarı</Text>
+              <Text style={styles.monsterMiniSubtitle}>
+                Durum: {String(monsterState).toUpperCase()}
+              </Text>
             </View>
           </View>
-        </Card>
+
+          <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
+        </TouchableOpacity>
+
+        {/* Warning Banner */}
+        {(defenseScore < 40 || monsterState === 'angry') && (
+          <TouchableOpacity
+            style={styles.warningBanner}
+            onPress={() => router.push('/(tabs)/defense')}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="warning" size={18} color="#D97706" style={styles.warningBannerIcon} />
+            <Text style={styles.warningBannerText}>
+              Dikkat: Canavar güçlendi. Programı takip et.
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Günlük Görevler */}
         <Text style={styles.sectionTitle}>Günlük Görevler</Text>
@@ -193,7 +256,7 @@ export default function TodayScreen() {
         {/* Su */}
         <TouchableOpacity 
           style={styles.taskCard}
-          onPress={() => router.push('/(tabs)/tracking')}
+          onPress={() => setWaterModalOpen(true)}
         >
           <View style={styles.taskIcon}>
             <Ionicons name="water" size={28} color="#3B82F6" />
@@ -216,7 +279,7 @@ export default function TodayScreen() {
         {/* Spor/Aktivite */}
         <TouchableOpacity 
           style={styles.taskCard}
-          onPress={() => router.push('/(tabs)/tracking')}
+          onPress={() => setActivityModalOpen(true)}
         >
           <View style={styles.taskIcon}>
             <Ionicons name="walk" size={28} color="#F59E0B" />
@@ -239,7 +302,7 @@ export default function TodayScreen() {
         {/* Uyku */}
         <TouchableOpacity 
           style={styles.taskCard}
-          onPress={() => router.push('/(tabs)/tracking')}
+          onPress={() => setSleepModalOpen(true)}
         >
           <View style={styles.taskIcon}>
             <Ionicons name="moon" size={28} color="#6366F1" />
@@ -260,7 +323,211 @@ export default function TodayScreen() {
         </TouchableOpacity>
 
         <View style={styles.bottomSpacer} />
-      </ScrollView>
+      </Animated.ScrollView>
+
+      {/* Water Modal */}
+      <Modal
+        visible={waterModalOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setWaterModalOpen(false)}
+      >
+        <Pressable 
+          style={styles.modalBackdrop}
+          onPress={() => setWaterModalOpen(false)}
+        >
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Su Ekle</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.quickButton}
+                onPress={() => {
+                  addWaterByDay(currentDayIndex, 250);
+                  setWaterModalOpen(false);
+                }}
+              >
+                <Text style={styles.quickButtonText}>+250 ml</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickButton}
+                onPress={() => {
+                  addWaterByDay(currentDayIndex, 500);
+                  setWaterModalOpen(false);
+                }}
+              >
+                <Text style={styles.quickButtonText}>+500 ml</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickButton}
+                onPress={() => {
+                  addWaterByDay(currentDayIndex, 750);
+                  setWaterModalOpen(false);
+                }}
+              >
+                <Text style={styles.quickButtonText}>+750 ml</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={() => {
+                resetWaterByDay(currentDayIndex);
+                setWaterModalOpen(false);
+              }}
+            >
+              <Text style={styles.resetButtonText}>Sıfırla</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setWaterModalOpen(false)}
+            >
+              <Text style={styles.closeButtonText}>Kapat</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Activity Modal */}
+      <Modal
+        visible={activityModalOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setActivityModalOpen(false)}
+      >
+        <Pressable 
+          style={styles.modalBackdrop}
+          onPress={() => setActivityModalOpen(false)}
+        >
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Aktivite Ekle</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.quickButton}
+                onPress={() => {
+                  addActivityByDay(currentDayIndex, 10);
+                  setActivityModalOpen(false);
+                }}
+              >
+                <Text style={styles.quickButtonText}>+10 dk</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickButton}
+                onPress={() => {
+                  addActivityByDay(currentDayIndex, 20);
+                  setActivityModalOpen(false);
+                }}
+              >
+                <Text style={styles.quickButtonText}>+20 dk</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickButton}
+                onPress={() => {
+                  addActivityByDay(currentDayIndex, 30);
+                  setActivityModalOpen(false);
+                }}
+              >
+                <Text style={styles.quickButtonText}>+30 dk</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={() => {
+                resetActivityByDay(currentDayIndex);
+                setActivityModalOpen(false);
+              }}
+            >
+              <Text style={styles.resetButtonText}>Sıfırla</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setActivityModalOpen(false)}
+            >
+              <Text style={styles.closeButtonText}>Kapat</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Sleep Modal */}
+      <Modal
+        visible={sleepModalOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSleepModalOpen(false)}
+      >
+        <Pressable 
+          style={styles.modalBackdrop}
+          onPress={() => setSleepModalOpen(false)}
+        >
+          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Uyku Gir</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.quickButton}
+                onPress={() => {
+                  setSleepByDay(currentDayIndex, 6);
+                  setSleepModalOpen(false);
+                }}
+              >
+                <Text style={styles.quickButtonText}>6s</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickButton}
+                onPress={() => {
+                  setSleepByDay(currentDayIndex, 7);
+                  setSleepModalOpen(false);
+                }}
+              >
+                <Text style={styles.quickButtonText}>7s</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickButton}
+                onPress={() => {
+                  setSleepByDay(currentDayIndex, 8);
+                  setSleepModalOpen(false);
+                }}
+              >
+                <Text style={styles.quickButtonText}>8s</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.quickButton}
+                onPress={() => {
+                  addSleepByDay(currentDayIndex, 0.5);
+                  setSleepModalOpen(false);
+                }}
+              >
+                <Text style={styles.quickButtonText}>+0.5s</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickButton}
+                onPress={() => {
+                  addSleepByDay(currentDayIndex, 1);
+                  setSleepModalOpen(false);
+                }}
+              >
+                <Text style={styles.quickButtonText}>+1s</Text>
+              </TouchableOpacity>
+              <View style={styles.quickButton} />
+            </View>
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={() => {
+                resetSleepByDay(currentDayIndex);
+                setSleepModalOpen(false);
+              }}
+            >
+              <Text style={styles.resetButtonText}>Sıfırla</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setSleepModalOpen(false)}
+            >
+              <Text style={styles.closeButtonText}>Kapat</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -276,22 +543,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 32
-  },
-  header: {
-    marginBottom: 16
-  },
-  dayLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5
-  },
-  dayTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginTop: 4
   },
   monsterSection: {
     alignItems: 'center'
@@ -361,6 +612,48 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginTop: 8,
     marginBottom: 16
+  },
+  monsterMiniCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  monsterMiniLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  monsterMiniIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    overflow: 'hidden',
+  },
+  monsterMiniText: {
+    flex: 1,
+  },
+  monsterMiniTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  monsterMiniSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
   },
   taskCard: {
     flexDirection: 'row',
@@ -442,26 +735,63 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600'
   },
-  mealPlanCard: {
+  mealCtaCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2
   },
-  mealPlanTitle: {
-    fontSize: 18,
+  mealCtaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1
+  },
+  mealCtaIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10
+  },
+  mealCtaText: {
+    flex: 1
+  },
+  mealCtaTitle: {
+    fontSize: 15,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 4
+    marginBottom: 2
   },
-  mealPlanSubtitle: {
-    fontSize: 14,
+  mealCtaSubtitle: {
+    fontSize: 12,
     color: '#6B7280'
+  },
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8
+  },
+  warningBannerIcon: {
+    marginRight: 8
+  },
+  warningBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#92400E',
+    lineHeight: 18
   },
   defiRow: {
     flexDirection: 'row',
@@ -478,5 +808,75 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
     marginBottom: 4
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '80%',
+    maxWidth: 320,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 20,
+    textAlign: 'center'
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20
+  },
+  quickButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 4
+  },
+  quickButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937'
+  },
+  resetButton: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12
+  },
+  resetButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#DC2626'
+  },
+  closeButton: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  closeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280'
   }
 });

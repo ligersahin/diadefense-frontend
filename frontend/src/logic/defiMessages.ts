@@ -62,8 +62,7 @@ export function getDefiMessage(input: MessageInput): DefiResponse {
       const mealNames: Record<MealSlot, string> = {
         breakfast: 'kahvaltı',
         lunch: 'öğle',
-        dinner: 'akşam',
-        snack: 'ara öğün'
+        dinner: 'akşam'
       };
       return {
         mood: 'concerned',

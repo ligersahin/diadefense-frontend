@@ -12,7 +12,7 @@ export default function SupplementsScreen() {
     currentDayPlan, 
     currentDayIndex, 
     completedSupplements, 
-    markSupplementTaken 
+    toggleSupplementTaken 
   } = useDefenseProgram();
 
   if (!currentDayPlan) {
@@ -28,9 +28,7 @@ export default function SupplementsScreen() {
   const todaySupps = completedSupplements[currentDayIndex] || [];
 
   const handleToggleSupplement = (id: string) => {
-    if (!todaySupps.includes(id)) {
-      markSupplementTaken(currentDayIndex, id);
-    }
+    toggleSupplementTaken(currentDayIndex, id);
   };
 
   return (

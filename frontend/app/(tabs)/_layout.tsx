@@ -50,7 +50,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="defense"
         options={{
-          title: 'Savunma',
+          title: 'Savunma Paneli',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="shield" size={size} color={color} />
           )

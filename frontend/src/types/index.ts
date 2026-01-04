@@ -1,6 +1,6 @@
 // DiaDefense Type Definitions
 
-export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner';
 
 export type DayMeal = {
   slot: MealSlot;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,30 +10,33 @@ import { getCurrentProgramDay } from '../src/utils/programDay';
 
 const MEAL_ICONS: Record<MealSlot, string> = {
   breakfast: 'sunny',
-  snack: 'cafe',
   lunch: 'restaurant',
   dinner: 'moon'
 };
 
 const MEAL_NAMES: Record<MealSlot, string> = {
   breakfast: 'Kahvaltı',
-  snack: 'Ara Öğün',
   lunch: 'Öğle Yemeği',
   dinner: 'Akşam Yemeği'
 };
 
 export default function MenusScreen() {
   const router = useRouter();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [mealsYPosition, setMealsYPosition] = useState<number | null>(null);
+  const [supplementsYPosition, setSupplementsYPosition] = useState<number | null>(null);
+  
   const { 
-    program,
     currentDayPlan, 
     currentDayIndex,
     startISO,
-    completedMeals, 
-    markMealCompleted 
+    completedMeals,
+    completedSupplements,
+    toggleMealCompleted,
+    toggleSupplementTaken
   } = useDefenseProgram();
 
-  if (!currentDayPlan || !program || program.length === 0) {
+  if (!currentDayPlan) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
@@ -45,24 +48,43 @@ export default function MenusScreen() {
 
   // Calculate current program day using the utility function
   const currentDay = getCurrentProgramDay(startISO);
-  
-  // Get today's program day plan (find by dayIndex matching currentDay)
-  const todayDayPlan = program.find(day => day.dayIndex === currentDay) || currentDayPlan;
-  const todayDayIndex = currentDay;
-  
-  // Split program into today's day and other days
-  const otherDays = program.filter(day => day.dayIndex !== currentDay);
+
+  const rawDayMeals = completedMeals[currentDayIndex] || [];
+  // Filter out snacks and deduplicate for meal counter
+  const todayMeals = Array.from(new Set(rawDayMeals.filter(s => s !== 'snack' && (s === 'breakfast' || s === 'lunch' || s === 'dinner'))));
+  const safeMeals = (currentDayPlan?.meals ?? []).filter(
+    (m: any) => m?.type !== "snack" && m?.slot !== "snack" && m?.label !== "Ara Öğün"
+  );
+  const totalMeals = safeMeals.length;
+
+  const todaySupps = completedSupplements[currentDayIndex] || [];
+  const totalSupps = currentDayPlan.supplements.length;
 
   const handleToggleMeal = (dayIndex: number, slot: MealSlot) => {
-    const dayMeals = completedMeals[dayIndex] || [];
-    if (!dayMeals.includes(slot)) {
-      markMealCompleted(dayIndex, slot);
+    toggleMealCompleted(dayIndex, slot);
+  };
+
+  const handleToggleSupplement = (id: string) => {
+    toggleSupplementTaken(currentDayIndex, id);
+  };
+
+  const scrollToMeals = () => {
+    if (mealsYPosition !== null && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: mealsYPosition, animated: true });
+    }
+  };
+
+  const scrollToSupplements = () => {
+    if (supplementsYPosition !== null && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: supplementsYPosition, animated: true });
     }
   };
 
   // Reusable function to render meals for a given day
   const renderMealsForDay = (dayPlan: DayPlan, dayIndex: number, showCheckbox: boolean = false) => {
-    const dayMeals = completedMeals[dayIndex] || [];
+    const rawDayMeals = completedMeals[dayIndex] || [];
+    // Filter out snacks and deduplicate for safe meal checking
+    const dayMeals = Array.from(new Set(rawDayMeals.filter(s => s !== 'snack' && (s === 'breakfast' || s === 'lunch' || s === 'dinner'))));
     
     return dayPlan.meals.map((meal, index) => {
       const isCompleted = dayMeals.includes(meal.slot);
@@ -121,26 +143,90 @@ export default function MenusScreen() {
         </View>
       </View>
 
+      {/* Jump Buttons */}
+      <View style={styles.jumpButtons}>
+        <TouchableOpacity style={styles.jumpButton} onPress={scrollToMeals}>
+          <Ionicons name="restaurant" size={16} color="#10B981" />
+          <Text style={styles.jumpButtonText}>Yemekler</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.jumpButton} onPress={scrollToSupplements}>
+          <Ionicons name="medical" size={16} color="#8B5CF6" />
+          <Text style={styles.jumpButtonText}>Supplementler</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView 
+        ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Bugünün Menüsü - Today's Meal Plan */}
-        <Text style={styles.sectionTitle}>Bugünün Menüsü</Text>
-        {renderMealsForDay(todayDayPlan, todayDayIndex, true)}
+        <View
+          onLayout={(event) => {
+            const { y } = event.nativeEvent.layout;
+            setMealsYPosition(y);
+          }}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Bugünün Menüsü</Text>
+            <Text style={styles.sectionSubtitle}>
+              {todayMeals.length} / {totalMeals} tamamlandı
+            </Text>
+          </View>
+          {renderMealsForDay(currentDayPlan, currentDayIndex, true)}
+        </View>
 
-        {/* Diğer Günler - Other Days */}
-        {otherDays.length > 0 && (
-          <>
-            <Text style={[styles.sectionTitle, styles.otherDaysTitle]}>Diğer Günler</Text>
-            {otherDays.map((dayPlan) => (
-              <View key={dayPlan.dayIndex} style={styles.daySection}>
-                <Text style={styles.dayLabel}>{dayPlan.label}</Text>
-                {renderMealsForDay(dayPlan, dayPlan.dayIndex, false)}
-              </View>
-            ))}
-          </>
+        {/* Bugünün Supplementleri - Today's Supplements */}
+        {currentDayPlan.supplements.length > 0 && (
+          <View
+            onLayout={(event) => {
+              const { y } = event.nativeEvent.layout;
+              setSupplementsYPosition(y);
+            }}
+            style={styles.supplementsSection}
+          >
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Bugünün Supplementleri</Text>
+              <Text style={styles.sectionSubtitle}>
+                {todaySupps.length} / {totalSupps} alındı
+              </Text>
+            </View>
+            {currentDayPlan.supplements.map((supp) => {
+              const isTaken = todaySupps.includes(supp.id);
+              
+              return (
+                <Card key={supp.id}>
+                  <View style={styles.suppCard}>
+                    <View style={styles.suppHeader}>
+                      <View style={styles.suppInfo}>
+                        <View style={[styles.suppIcon, isTaken && styles.suppIconTaken]}>
+                          <Ionicons 
+                            name="medical" 
+                            size={24} 
+                            color={isTaken ? '#8B5CF6' : '#6B7280'} 
+                          />
+                        </View>
+                        <View style={styles.suppDetails}>
+                          <Text style={styles.suppTime}>{supp.time}</Text>
+                          <Text style={styles.suppName}>{supp.name}</Text>
+                          <Text style={styles.suppDose}>{supp.dose}</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.checkbox, isTaken && styles.checkboxTaken]}
+                        onPress={() => handleToggleSupplement(supp.id)}
+                      >
+                        {isTaken && (
+                          <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </Card>
+              );
+            })}
+          </View>
         )}
 
         <View style={styles.bottomSpacer} />
@@ -182,6 +268,29 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 2
   },
+  jumpButtons: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    gap: 8
+  },
+  jumpButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    gap: 6
+  },
+  jumpButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1F2937'
+  },
   scrollView: {
     flex: 1
   },
@@ -195,19 +304,64 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16
   },
-  otherDaysTitle: {
-    marginTop: 32
+  sectionHeader: {
+    marginBottom: 16
   },
-  daySection: {
-    marginBottom: 24
-  },
-  dayLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+  sectionSubtitle: {
+    fontSize: 14,
     color: '#6B7280',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5
+    marginTop: 4
+  },
+  supplementsSection: {
+    marginTop: 24
+  },
+  suppCard: {
+    width: '100%'
+  },
+  suppHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  suppInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1
+  },
+  suppIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16
+  },
+  suppIconTaken: {
+    backgroundColor: '#EDE9FE'
+  },
+  suppDetails: {
+    flex: 1
+  },
+  suppTime: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+    marginBottom: 4
+  },
+  suppName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 2
+  },
+  suppDose: {
+    fontSize: 14,
+    color: '#6B7280'
+  },
+  checkboxTaken: {
+    backgroundColor: '#8B5CF6',
+    borderColor: '#8B5CF6'
   },
   mealCard: {
     width: '100%'

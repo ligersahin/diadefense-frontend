@@ -4,8 +4,9 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
+    "start:clear": "expo start -c",
+    "ios": "expo start --ios",
+    "android": "expo start --android",
     "lint": "expo lint"
   },
   "dependencies": {

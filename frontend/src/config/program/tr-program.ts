@@ -14,19 +14,9 @@ export const TR_PROGRAM: DayPlan[] = [
         description: '2 yumurta (haşlanmış), 1 dilim kepekli ekmek, domates, salatalık, 5-6 zeytin'
       },
       {
-        slot: 'snack',
-        title: 'Ara Öğün',
-        description: '1 porsiyon yoğurt (200ml), 5-6 çiğ badem'
-      },
-      {
         slot: 'lunch',
         title: 'Öğle Yemeği',
         description: 'Izgara tavuk (150g), bulgur pilavı (3 yemek kaşığı), bol yeşillik salata'
-      },
-      {
-        slot: 'snack',
-        title: 'Ara Öğün',
-        description: '1 orta boy elma'
       },
       {
         slot: 'dinner',
@@ -70,19 +60,9 @@ export const TR_PROGRAM: DayPlan[] = [
         description: 'Yulaf ezmesi (5 kaşık), süt (200ml), çilek (5-6 adet)'
       },
       {
-        slot: 'snack',
-        title: 'Ara Öğün',
-        description: '1 avuç çiğ ceviz'
-      },
-      {
         slot: 'lunch',
         title: 'Öğle Yemeği',
         description: 'Etli kuru fasulye (et 100g), cacık, salata'
-      },
-      {
-        slot: 'snack',
-        title: 'Ara Öğün',
-        description: 'Ayran (1 bardak)'
       },
       {
         slot: 'dinner',
@@ -126,19 +106,9 @@ export const TR_PROGRAM: DayPlan[] = [
         description: 'Omlet (2 yumurta), tam buğday ekmeği (1 dilim), avokado (yarım)'
       },
       {
-        slot: 'snack',
-        title: 'Ara Öğün',
-        description: '1 orta boy armut'
-      },
-      {
         slot: 'lunch',
         title: 'Öğle Yemeği',
         description: 'Izgara köfte (100g), kinoa salatası'
-      },
-      {
-        slot: 'snack',
-        title: 'Ara Öğün',
-        description: 'Bitter çikolata (2 kare, %70)'
       },
       {
         slot: 'dinner',
@@ -182,19 +152,9 @@ export const TR_PROGRAM: DayPlan[] = [
         description: 'Yulaf ezmesi bowl (muz, chia tohumları, fındık)'
       },
       {
-        slot: 'snack',
-        title: 'Ara Öğün',
-        description: 'Kefir (1 bardak), 3-4 ceviz'
-      },
-      {
         slot: 'lunch',
         title: 'Öğle Yemeği',
         description: 'Sebzeli tavuk güveç (150g), salata'
-      },
-      {
-        slot: 'snack',
-        title: 'Ara Öğün',
-        description: '1 küçük boy muz'
       },
       {
         slot: 'dinner',
@@ -238,19 +198,9 @@ export const TR_PROGRAM: DayPlan[] = [
         description: 'Peynir (50g), tam buğday ekmeği (2 dilim), domates, salatalık'
       },
       {
-        slot: 'snack',
-        title: 'Ara Öğün',
-        description: 'Portakal (1 orta boy)'
-      },
-      {
         slot: 'lunch',
         title: 'Öğle Yemeği',
         description: 'Mercimek çorbası, tavuk şiş (100g), bulgur pilavı (3 kaşık)'
-      },
-      {
-        slot: 'snack',
-        title: 'Ara Öğün',
-        description: 'Yoğurt (150ml), 1 tatlı kaşığı bal'
       },
       {
         slot: 'dinner',

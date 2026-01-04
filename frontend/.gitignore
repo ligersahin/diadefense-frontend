@@ -37,3 +37,21 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# Metro cache
+.metro-cache/
+
+# Disabled native folders
+ios__DISABLED/
+android__DISABLED/
+
+# Metro / Expo cache
+.metro-cache/
+.expo/
+
+# Native build folders
+ios/
+android/
+
+# Dependencies
+node_modules/
