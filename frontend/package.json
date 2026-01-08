@@ -5,8 +5,8 @@
   "scripts": {
     "start": "expo start",
     "start:clear": "expo start -c",
-    "ios": "expo start --ios",
-    "android": "expo start --android",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
     "lint": "expo lint"
   },
   "dependencies": {

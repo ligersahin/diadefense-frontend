@@ -81,3 +81,6 @@ android-sdk/ -e
 # Environment files
 *.env
 *.env.*
+
+# local backups (do not commit)
+ios__BROKEN_BACKUP_*/
