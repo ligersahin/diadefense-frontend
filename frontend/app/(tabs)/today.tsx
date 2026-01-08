@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useDefenseProgram } from '../../src/context/DefenseProgramContext';
 import { moodFromDefenseScore, MonsterMood } from '../../src/components/MonsterAvatar';
-import { Card } from '../../src/components/Card';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DefiAvatar from "../../src/components/DefiAvatar";
 
@@ -39,7 +38,8 @@ export default function TodayScreen() {
   const router = useRouter();
   const { focus } = useLocalSearchParams();
   const scrollViewRef = useRef<ScrollView>(null);
-  const [mealsYPosition, setMealsYPosition] = useState<number | null>(null);
+  const mealsYPositionRef = useRef<number | null>(null);
+  const supplementsYPositionRef = useRef<number | null>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [waterModalOpen, setWaterModalOpen] = useState(false);
   const [activityModalOpen, setActivityModalOpen] = useState(false);
@@ -59,10 +59,30 @@ export default function TodayScreen() {
   };
 
   useEffect(() => {
-    if (focus === 'meals' && mealsYPosition !== null && scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({ y: mealsYPosition, animated: true });
+    if (!focus || !scrollViewRef.current) return;
+
+    const focusStr = Array.isArray(focus) ? focus[0] : focus;
+    if (focusStr !== 'meals' && focusStr !== 'supplements') return;
+
+    const getY = () =>
+      focusStr === 'meals' ? mealsYPositionRef.current : supplementsYPositionRef.current;
+
+    const y = getY();
+
+    if (y !== null) {
+      scrollViewRef.current.scrollTo({ y: Math.max(0, y - 12), animated: true });
+      return;
     }
-  }, [focus, mealsYPosition]);
+
+    const timeoutId = setTimeout(() => {
+      const retryY = getY();
+      if (retryY !== null && scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ y: Math.max(0, retryY - 12), animated: true });
+      }
+    }, 80);
+
+    return () => clearTimeout(timeoutId);
+  }, [focus]);
 
   if (!currentDayPlan) {
     return (
@@ -209,7 +229,7 @@ export default function TodayScreen() {
           onPress={() => router.push('/menus')}
           onLayout={(event) => {
             const { y } = event.nativeEvent.layout;
-            setMealsYPosition(y);
+            mealsYPositionRef.current = y;
           }}
         >
           <View style={styles.taskIcon}>
@@ -234,6 +254,10 @@ export default function TodayScreen() {
         <TouchableOpacity 
           style={styles.taskCard}
           onPress={() => router.push('/supplements')}
+          onLayout={(event) => {
+            const { y } = event.nativeEvent.layout;
+            supplementsYPositionRef.current = y;
+          }}
         >
           <View style={styles.taskIcon}>
             <Ionicons name="medical" size={28} color="#8B5CF6" />
