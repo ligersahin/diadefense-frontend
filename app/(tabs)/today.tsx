@@ -7,6 +7,7 @@ import { moodFromDefenseScore, MonsterMood } from '../../src/components/MonsterA
 import { Card } from '../../src/components/Card';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DefiAvatar from "../../src/components/DefiAvatar";
+import { Theme } from '../../src/config/theme';
 
 export default function TodayScreen() {
   const {
@@ -64,23 +65,6 @@ export default function TodayScreen() {
     }
   }, [focus, mealsYPosition]);
 
-  if (!currentDayPlan) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centered}>
-          <Text style={styles.title}>Program Başlatılmadı</Text>
-          <Text style={styles.subtitle}>Ayarlar'dan programı başlatın</Text>
-          <TouchableOpacity 
-            style={styles.startButton}
-            onPress={() => router.push('/settings')}
-          >
-            <Text style={styles.startButtonText}>Ayarlara Git</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   const dayMeals = completedMeals[currentDayIndex] || [];
   const todaySupps = completedSupplements[currentDayIndex] || [];
   // Filter out any potential snack entries and deduplicate
@@ -91,7 +75,7 @@ export default function TodayScreen() {
   // Filter and deduplicate completed meals to only include safe meal slots
   const todayMeals = Array.from(new Set(dayMeals.filter(slot => safeMealSlots.has(slot))));
   const totalMeals = safeMeals.length;
-  const totalSupps = currentDayPlan.supplements.length;
+  const totalSupps = currentDayPlan?.supplements?.length || 0;
 
   const defiOpacity = scrollY.interpolate({
     inputRange: [0, 120],
@@ -121,23 +105,25 @@ export default function TodayScreen() {
         <Animated.View
           style={{
             alignItems: "center",
-            paddingTop: 8,
+            paddingTop: 0,
             paddingBottom: 0,
-            marginBottom: -6,
+            marginTop: -28,
+            marginBottom: -14,
             opacity: defiOpacity,
             transform: [{ scale: defiScale }],
           }}
         >
-          <DefiAvatar size={165} />
+          <DefiAvatar size={178} />
         </Animated.View>
         {/* Defi Daily Message Card */}
         <View style={styles.defiCard}>
           <View style={styles.defiTextContainer}>
-            <Text style={styles.defiTitle}>Defi'nin Bugünkü Mesajı</Text>
             <Text style={styles.defiMessage}>
-              "Bugün metabolizmanı desteklemek için düzenli beslen ve her öğünden sonra kısa yürüyüşlerle kan şekerini dengele."
+              Bugün metabolizmanı desteklemek için düzenli beslen ve her öğünden sonra kısa yürüyüşlerle kan şekerini dengele.
             </Text>
+            <Text style={styles.defiSignature}>— Defi</Text>
           </View>
+          <View style={styles.defiBubbleTail} />
         </View>
 
         {/* Today's Meal Plan Card */}
@@ -147,7 +133,7 @@ export default function TodayScreen() {
           activeOpacity={0.85}
         >
           <View style={styles.mealCtaLeft}>
-            <View style={styles.mealCtaIcon}>
+            <View style={styles.sharedIconChip}>
               <Ionicons name="restaurant" size={20} color="#10B981" />
             </View>
             <View style={styles.mealCtaText}>
@@ -170,7 +156,7 @@ export default function TodayScreen() {
             <View style={styles.monsterMiniIcon}>
               <Image
                 source={getMonsterImage(moodFromDefenseScore(defenseScore))}
-                style={{ width: 70, height: 70 }}
+                style={{ width: 36, height: 36 }}
                 resizeMode="contain"
               />
             </View>
@@ -212,8 +198,8 @@ export default function TodayScreen() {
             setMealsYPosition(y);
           }}
         >
-          <View style={styles.taskIcon}>
-            <Ionicons name="restaurant" size={28} color="#10B981" />
+          <View style={styles.sharedIconChip}>
+            <Ionicons name="restaurant" size={20} color="#10B981" />
           </View>
           <View style={styles.taskContent}>
             <Text style={styles.taskTitle}>Menüler</Text>
@@ -235,8 +221,8 @@ export default function TodayScreen() {
           style={styles.taskCard}
           onPress={() => router.push('/supplements')}
         >
-          <View style={styles.taskIcon}>
-            <Ionicons name="medical" size={28} color="#8B5CF6" />
+          <View style={styles.sharedIconChip}>
+            <Ionicons name="medical" size={20} color="#8B5CF6" />
           </View>
           <View style={styles.taskContent}>
             <Text style={styles.taskTitle}>Supplementler</Text>
@@ -258,8 +244,8 @@ export default function TodayScreen() {
           style={styles.taskCard}
           onPress={() => setWaterModalOpen(true)}
         >
-          <View style={styles.taskIcon}>
-            <Ionicons name="water" size={28} color="#3B82F6" />
+          <View style={styles.sharedIconChip}>
+            <Ionicons name="water" size={20} color="#3B82F6" />
           </View>
           <View style={styles.taskContent}>
             <Text style={styles.taskTitle}>Su İçme</Text>
@@ -281,8 +267,8 @@ export default function TodayScreen() {
           style={styles.taskCard}
           onPress={() => setActivityModalOpen(true)}
         >
-          <View style={styles.taskIcon}>
-            <Ionicons name="walk" size={28} color="#F59E0B" />
+          <View style={styles.sharedIconChip}>
+            <Ionicons name="walk" size={20} color="#F59E0B" />
           </View>
           <View style={styles.taskContent}>
             <Text style={styles.taskTitle}>Aktivite</Text>
@@ -304,8 +290,8 @@ export default function TodayScreen() {
           style={styles.taskCard}
           onPress={() => setSleepModalOpen(true)}
         >
-          <View style={styles.taskIcon}>
-            <Ionicons name="moon" size={28} color="#6366F1" />
+          <View style={styles.sharedIconChip}>
+            <Ionicons name="moon" size={20} color="#6366F1" />
           </View>
           <View style={styles.taskContent}>
             <Text style={styles.taskTitle}>Uyku</Text>
@@ -535,14 +521,15 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6'
+    backgroundColor: '#F4F6F8'
   },
   scrollView: {
     flex: 1
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 32
+    paddingTop: 0,
+    paddingBottom: 24
   },
   monsterSection: {
     alignItems: 'center'
@@ -574,16 +561,42 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 6
   },
-  defiCard: {
+  // Shared card style
+  sharedCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 14,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
-    shadowRadius: 6,
+    shadowRadius: 8,
     elevation: 2
+  },
+  // Shared icon chip style
+  sharedIconChip: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12
+  },
+  defiCard: {
+    backgroundColor: '#FAFBFC',
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.06)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    elevation: 6,
+    position: 'relative'
   },
   defiSection: {
     alignItems: 'center'
@@ -591,14 +604,36 @@ const styles = StyleSheet.create({
   speechBubble: {
     marginTop: 16,
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Theme.surface,
     borderRadius: 12,
     width: '100%'
   },
   defiMessage: {
+    fontSize: 18,
+    color: '#0F172A',
+    lineHeight: 26,
+    fontWeight: '500',
+    marginBottom: 12
+  },
+  defiSignature: {
     fontSize: 14,
-    color: '#4B5563',
-    lineHeight: 20
+    color: '#94A3B8',
+    textAlign: 'right',
+    marginTop: 4,
+    fontWeight: '500'
+  },
+  defiBubbleTail: {
+    position: 'absolute',
+    left: 20,
+    bottom: -10,
+    width: 14,
+    height: 14,
+    backgroundColor: '#FAFBFC',
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.06)',
+    transform: [{ rotate: '45deg' }],
+    borderRadius: 2,
+    zIndex: -1
   },
   defiSpeechMessage: {
     fontSize: 16,
@@ -619,12 +654,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
+    padding: 16,
+    marginBottom: 14,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   monsterMiniLeft: {
@@ -633,9 +668,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   monsterMiniIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
@@ -661,21 +696,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 14,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2
   },
   taskIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16
+    marginRight: 12
   },
   taskContent: {
     flex: 1
@@ -740,28 +775,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2
   },
   mealCtaLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1
-  },
-  mealCtaIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10
   },
   mealCtaText: {
     flex: 1
@@ -803,12 +829,6 @@ const styles = StyleSheet.create({
   defiTextContainer: {
     flex: 1
   },
-  defiTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4
-  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -816,7 +836,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   modalCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Theme.surface,
     borderRadius: 16,
     padding: 24,
     width: '80%',

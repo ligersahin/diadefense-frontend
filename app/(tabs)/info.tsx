@@ -24,21 +24,6 @@ export default function InfoScreen() {
           <Text style={styles.subtitle}>Diyabet yönetimi hakkında her şey</Text>
         </View>
 
-        {/* Ayarlar */}
-        <TouchableOpacity 
-          style={styles.settingsCard}
-          onPress={() => router.push('/settings')}
-        >
-          <View style={[styles.iconContainer, { backgroundColor: '#EDE9FE' }]}>
-            <Ionicons name="settings" size={24} color="#8B5CF6" />
-          </View>
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Ayarlar</Text>
-            <Text style={styles.cardDescription}>Program ve tercihleriniz</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
-        </TouchableOpacity>
-
         {/* Kritik Uyarılar */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>

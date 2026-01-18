@@ -61,6 +61,7 @@ type DefenseProgramContextType = {
   resetWeightByDay: (dayIndex: number) => void;
   setBloodValues: (values: BloodValues) => void;
   resetDailyProgress: () => void;
+  resetProgram: () => Promise<void>;
 };
 
 const DefenseProgramContext = createContext<DefenseProgramContextType | undefined>(undefined);
@@ -171,7 +172,14 @@ export function DefenseProgramProvider({ children }: { children: ReactNode }) {
         AsyncStorage.getItem(STORAGE_KEYS.BLOOD)
       ]);
 
-      if (savedStart) setStartISOState(savedStart);
+      // Auto-init: if startISO is missing, set it to today
+      if (savedStart) {
+        setStartISOState(savedStart);
+      } else {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        setStartISOState(today);
+        await AsyncStorage.setItem(STORAGE_KEYS.START_DATE, today);
+      }
       if (savedMeals) setCompletedMeals(JSON.parse(savedMeals));
       if (savedSupps) setCompletedSupplements(JSON.parse(savedSupps));
       if (savedWater) setWaterIntakeLiters(parseFloat(savedWater));
@@ -596,6 +604,35 @@ export function DefenseProgramProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function resetProgram() {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    setStartISOState(today);
+    
+    // Reset all progress data
+    setCompletedMeals({});
+    setCompletedSupplements({});
+    setWaterIntakeByDay({});
+    setActivityMinutesByDay({});
+    setSleepHoursByDay({});
+    setGlucoseByDayState({});
+    setWeightByDayState({});
+    
+    try {
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_KEYS.START_DATE, today),
+        AsyncStorage.setItem(STORAGE_KEYS.COMPLETED_MEALS, JSON.stringify({})),
+        AsyncStorage.setItem(STORAGE_KEYS.COMPLETED_SUPPS, JSON.stringify({})),
+        AsyncStorage.setItem(STORAGE_KEYS.WATER_BY_DAY, JSON.stringify({})),
+        AsyncStorage.setItem(STORAGE_KEYS.ACTIVITY_BY_DAY, JSON.stringify({})),
+        AsyncStorage.setItem(STORAGE_KEYS.SLEEP_BY_DAY, JSON.stringify({})),
+        AsyncStorage.setItem(STORAGE_KEYS.GLUCOSE_BY_DAY, JSON.stringify({})),
+        AsyncStorage.setItem(STORAGE_KEYS.WEIGHT_BY_DAY, JSON.stringify({}))
+      ]);
+    } catch (error) {
+      console.error('Failed to reset program:', error);
+    }
+  }
+
   const value: DefenseProgramContextType = {
     program,
     startISO,
@@ -643,7 +680,8 @@ export function DefenseProgramProvider({ children }: { children: ReactNode }) {
     setWeightByDay,
     resetWeightByDay,
     setBloodValues,
-    resetDailyProgress
+    resetDailyProgress,
+    resetProgram
   };
 
   return (
