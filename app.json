@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "diadefense",
+    "slug": "diadefense",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/brand/icon/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/brand/splash/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B1220"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sahin3838.diadefense"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.sahin3838.diadefense"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-localization",
+        {
+          "locale": "auto"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
